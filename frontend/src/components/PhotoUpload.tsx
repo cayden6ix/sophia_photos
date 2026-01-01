@@ -118,7 +118,7 @@ function PhotoUpload() {
             Toque para adicionar fotos!
           </h3>
           <p className="text-safari-brown/60 text-sm sm:text-base px-2 hidden sm:block">
-            ou arraste suas fotos para ca
+            Ou arraste suas fotos para cá!
           </p>
           <button
             onClick={() => fileInputRef.current?.click()}
