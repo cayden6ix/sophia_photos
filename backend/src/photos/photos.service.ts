@@ -69,4 +69,47 @@ export class PhotosService {
 
     return data || [];
   }
+
+  async getPhotoById(id: string): Promise<any | null> {
+    const { data, error } = await this.supabase
+      .from('photos')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      return null;
+    }
+    return data;
+  }
+
+  async getPhotosByIds(ids: string[]): Promise<any[]> {
+    const { data, error } = await this.supabase
+      .from('photos')
+      .select('*')
+      .in('id', ids);
+
+    if (error) {
+      throw new Error(`Erro ao buscar fotos: ${error.message}`);
+    }
+    return data || [];
+  }
+
+  async downloadPhotoBuffer(storagePath: string): Promise<Buffer> {
+    const { data, error } = await this.supabase.storage
+      .from('photos')
+      .download(storagePath);
+
+    if (error) {
+      throw new Error(`Erro ao baixar foto: ${error.message}`);
+    }
+
+    const arrayBuffer = await data.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  }
+
+  extractStoragePath(fileUrl: string): string {
+    const parts = fileUrl.split('/photos/');
+    return parts[parts.length - 1];
+  }
 }

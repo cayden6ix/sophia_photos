@@ -14,6 +14,9 @@ function PhotoGallery() {
   const [photos, setPhotos] = useState<Photo[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null)
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set())
+  const [isDownloading, setIsDownloading] = useState(false)
 
   useEffect(() => {
     fetchPhotos()
@@ -38,6 +41,69 @@ function PhotoGallery() {
       hour: '2-digit',
       minute: '2-digit',
     })
+  }
+
+  const toggleSelectionMode = () => {
+    setSelectionMode(!selectionMode)
+    setSelectedPhotos(new Set())
+  }
+
+  const togglePhotoSelection = (photoId: string) => {
+    const newSelection = new Set(selectedPhotos)
+    if (newSelection.has(photoId)) {
+      newSelection.delete(photoId)
+    } else {
+      newSelection.add(photoId)
+    }
+    setSelectedPhotos(newSelection)
+  }
+
+  const selectAllPhotos = () => {
+    setSelectedPhotos(new Set(photos.map((p) => p.id)))
+  }
+
+  const downloadSinglePhoto = async (photo: Photo) => {
+    try {
+      const response = await axios.get(`${API_URL}/photos/download/${photo.id}`, {
+        responseType: 'blob',
+      })
+      const url = window.URL.createObjectURL(response.data)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = photo.file_name
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Erro ao baixar foto:', error)
+    }
+  }
+
+  const downloadSelectedPhotos = async (photoIds: string[]) => {
+    if (photoIds.length === 0) return
+    setIsDownloading(true)
+    try {
+      const response = await axios.post(
+        `${API_URL}/photos/download-zip`,
+        { photoIds },
+        { responseType: 'blob' }
+      )
+      const url = window.URL.createObjectURL(response.data)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `sophia_photos_${new Date().toISOString().slice(0, 10)}.zip`
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Erro ao baixar fotos:', error)
+    } finally {
+      setIsDownloading(false)
+      setSelectionMode(false)
+      setSelectedPhotos(new Set())
+    }
+  }
+
+  const downloadAllPhotos = () => {
+    downloadSelectedPhotos(photos.map((p) => p.id))
   }
 
   // Bloquear scroll do body quando modal esta aberto
@@ -85,13 +151,60 @@ function PhotoGallery() {
 
   return (
     <>
+      {/* Toolbar de Seleção */}
+      <div className="flex flex-wrap justify-between items-center mb-4 px-2 sm:px-0 gap-2">
+        <div className="flex items-center gap-2">
+          {selectionMode && (
+            <>
+              <span className="text-safari-brown font-semibold text-sm sm:text-base">
+                {selectedPhotos.size} selecionada(s)
+              </span>
+              <button
+                onClick={selectAllPhotos}
+                className="text-safari-green font-semibold text-sm hover:underline"
+              >
+                Selecionar Todas
+              </button>
+            </>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {!selectionMode && (
+            <button
+              onClick={downloadAllPhotos}
+              disabled={isDownloading}
+              className="bg-safari-green text-white font-bold py-2 px-4 rounded-full hover:bg-safari-green-dark active:bg-safari-green-dark transition-colors text-sm flex items-center gap-1"
+            >
+              <span>⬇️</span>
+              <span>{isDownloading ? 'Baixando...' : 'Baixar Todas'}</span>
+            </button>
+          )}
+          <button
+            onClick={toggleSelectionMode}
+            className={`font-bold py-2 px-4 rounded-full transition-colors text-sm ${
+              selectionMode
+                ? 'bg-safari-brown text-white hover:bg-safari-brown-dark'
+                : 'bg-safari-cream text-safari-brown hover:bg-safari-cream-dark'
+            }`}
+          >
+            {selectionMode ? 'Cancelar' : 'Selecionar'}
+          </button>
+        </div>
+      </div>
+
       {/* Grid de Fotos */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 px-2 sm:px-0">
         {photos.map((photo) => (
           <div
             key={photo.id}
-            onClick={() => setSelectedPhoto(photo)}
-            className="relative group cursor-pointer rounded-xl sm:rounded-2xl overflow-hidden shadow-md sm:shadow-lg bg-white transform hover:scale-105 active:scale-[0.98] transition-all duration-300 border-2 border-safari-cream-dark hover:border-safari-green-light"
+            onClick={() =>
+              selectionMode ? togglePhotoSelection(photo.id) : setSelectedPhoto(photo)
+            }
+            className={`relative group cursor-pointer rounded-xl sm:rounded-2xl overflow-hidden shadow-md sm:shadow-lg bg-white transform hover:scale-105 active:scale-[0.98] transition-all duration-300 border-2 ${
+              selectedPhotos.has(photo.id)
+                ? 'border-safari-green ring-2 ring-safari-green'
+                : 'border-safari-cream-dark hover:border-safari-green-light'
+            }`}
           >
             <img
               src={photo.file_url}
@@ -99,6 +212,20 @@ function PhotoGallery() {
               className="w-full aspect-square sm:h-48 object-cover"
               loading="lazy"
             />
+            {/* Checkbox de seleção */}
+            {selectionMode && (
+              <div className="absolute top-2 left-2 z-10">
+                <div
+                  className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                    selectedPhotos.has(photo.id)
+                      ? 'bg-safari-green border-safari-green text-white'
+                      : 'bg-white/80 border-safari-brown/50'
+                  }`}
+                >
+                  {selectedPhotos.has(photo.id) && '✓'}
+                </div>
+              </div>
+            )}
             {/* Overlay com info - sempre visivel em mobile, hover em desktop */}
             <div className="absolute inset-0 bg-gradient-to-t from-safari-brown/70 to-transparent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300">
               <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 text-white">
@@ -106,10 +233,12 @@ function PhotoGallery() {
                 <p className="text-[10px] sm:text-xs opacity-80 hidden sm:block">{formatDate(photo.created_at)}</p>
               </div>
             </div>
-            {/* Icone de zoom - apenas em desktop */}
-            <div className="absolute top-2 right-2 bg-safari-cream/90 rounded-full p-1.5 sm:p-2 opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 hidden sm:flex">
-              🔍
-            </div>
+            {/* Icone de zoom - apenas em desktop (escondido no modo seleção) */}
+            {!selectionMode && (
+              <div className="absolute top-2 right-2 bg-safari-cream/90 rounded-full p-1.5 sm:p-2 opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 hidden sm:flex">
+                🔍
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -145,14 +274,23 @@ function PhotoGallery() {
             </div>
 
             {/* Info da foto */}
-            <div className="p-3 sm:p-4 bg-safari-cream flex-shrink-0">
-              <p className="font-bold text-safari-brown flex items-center gap-2 text-sm sm:text-base truncate">
-                <span>📸</span>
-                <span className="truncate">{selectedPhoto.file_name}</span>
-              </p>
-              <p className="text-xs sm:text-sm text-safari-brown/60">
-                {formatDate(selectedPhoto.created_at)}
-              </p>
+            <div className="p-3 sm:p-4 bg-safari-cream flex-shrink-0 flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-safari-brown flex items-center gap-2 text-sm sm:text-base truncate">
+                  <span>📸</span>
+                  <span className="truncate">{selectedPhoto.file_name}</span>
+                </p>
+                <p className="text-xs sm:text-sm text-safari-brown/60">
+                  {formatDate(selectedPhoto.created_at)}
+                </p>
+              </div>
+              <button
+                onClick={() => downloadSinglePhoto(selectedPhoto)}
+                className="bg-safari-green text-white font-bold py-2 px-4 rounded-full hover:bg-safari-green-dark active:bg-safari-green-dark transition-colors flex items-center gap-1 text-sm shrink-0"
+              >
+                <span>⬇️</span>
+                <span className="hidden sm:inline">Baixar</span>
+              </button>
             </div>
 
             {/* Botao fechar - maior e mais acessivel em mobile */}
@@ -164,6 +302,23 @@ function PhotoGallery() {
               x
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Barra de ação flutuante - aparece quando há fotos selecionadas */}
+      {selectionMode && selectedPhotos.size > 0 && (
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40 bg-safari-brown text-white rounded-full px-4 sm:px-6 py-3 shadow-xl flex items-center gap-3 sm:gap-4">
+          <span className="font-semibold text-sm sm:text-base">
+            {selectedPhotos.size} foto{selectedPhotos.size !== 1 ? 's' : ''}
+          </span>
+          <button
+            onClick={() => downloadSelectedPhotos(Array.from(selectedPhotos))}
+            disabled={isDownloading}
+            className="bg-safari-green px-4 py-2 rounded-full font-bold text-sm hover:bg-safari-green-dark active:bg-safari-green-dark transition-colors flex items-center gap-1"
+          >
+            <span>⬇️</span>
+            <span>{isDownloading ? 'Baixando...' : 'Baixar ZIP'}</span>
+          </button>
         </div>
       )}
     </>
