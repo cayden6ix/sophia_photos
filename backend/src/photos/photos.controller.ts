@@ -4,6 +4,7 @@ import {
   Post,
   Param,
   Body,
+  Query,
   Res,
   UploadedFiles,
   UseInterceptors,
@@ -47,10 +48,14 @@ export class PhotosController {
   }
 
   @Get()
-  async getAllPhotos() {
+  async getAllPhotos(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '20',
+  ) {
     try {
-      const photos = await this.photosService.getAllPhotos();
-      return { photos };
+      const pageNum = Math.max(1, parseInt(page) || 1);
+      const limitNum = Math.min(50, Math.max(1, parseInt(limit) || 20));
+      return await this.photosService.getAllPhotos(pageNum, limitNum);
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -115,16 +120,21 @@ export class PhotosController {
     const archive = archiver('zip', { zlib: { level: 5 } });
     archive.pipe(res);
 
-    for (const photo of photos) {
-      try {
-        const storagePath = this.photosService.extractStoragePath(
-          photo.file_url,
-        );
-        const buffer =
-          await this.photosService.downloadPhotoBuffer(storagePath);
-        archive.append(buffer, { name: photo.file_name });
-      } catch (error) {
-        console.error(`Erro ao adicionar foto ${photo.id}:`, error);
+    // Download paralelo das fotos para melhor performance
+    const downloadResults = await Promise.allSettled(
+      photos.map(async (photo) => {
+        const storagePath = this.photosService.extractStoragePath(photo.file_url);
+        const buffer = await this.photosService.downloadPhotoBuffer(storagePath);
+        return { buffer, fileName: photo.file_name, id: photo.id };
+      }),
+    );
+
+    // Adiciona ao arquivo apenas os downloads bem sucedidos
+    for (const result of downloadResults) {
+      if (result.status === 'fulfilled') {
+        archive.append(result.value.buffer, { name: result.value.fileName });
+      } else {
+        console.error('Erro ao baixar foto:', result.reason);
       }
     }
 

@@ -57,17 +57,28 @@ export class PhotosService {
     return { url: fileUrl, fileName: file.originalname };
   }
 
-  async getAllPhotos(): Promise<any[]> {
-    const { data, error } = await this.supabase
+  async getAllPhotos(
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<{ photos: any[]; total: number; hasMore: boolean }> {
+    const offset = (page - 1) * limit;
+
+    const { data, error, count } = await this.supabase
       .from('photos')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) {
       throw new Error(`Erro ao buscar fotos: ${error.message}`);
     }
 
-    return data || [];
+    const total = count || 0;
+    return {
+      photos: data || [],
+      total,
+      hasMore: offset + limit < total,
+    };
   }
 
   async getPhotoById(id: string): Promise<any | null> {

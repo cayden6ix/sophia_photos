@@ -1,7 +1,23 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, memo } from 'react'
 import axios from 'axios'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const PHOTOS_PER_PAGE = 20
+
+// Gera URL de thumbnail usando Supabase Image Transformations
+const getThumbnailUrl = (originalUrl: string, width: number = 400): string => {
+  // Supabase Storage URLs podem usar transformações via query params
+  // Formato: /storage/v1/render/image/public/bucket/file?width=400&height=400&resize=cover
+  if (originalUrl.includes('supabase.co/storage')) {
+    // Converte URL pública para URL de render com transformação
+    const renderUrl = originalUrl.replace(
+      '/storage/v1/object/public/',
+      '/storage/v1/render/image/public/'
+    )
+    return `${renderUrl}?width=${width}&height=${width}&resize=cover&quality=80`
+  }
+  return originalUrl
+}
 
 interface Photo {
   id: string
@@ -10,26 +26,147 @@ interface Photo {
   created_at: string
 }
 
+interface PhotoCardProps {
+  photo: Photo
+  isSelected: boolean
+  selectionMode: boolean
+  onSelect: (id: string) => void
+  onClick: (photo: Photo) => void
+  formatDate: (date: string) => string
+}
+
+// Componente memoizado para evitar re-renders desnecessários
+const PhotoCard = memo(function PhotoCard({
+  photo,
+  isSelected,
+  selectionMode,
+  onSelect,
+  onClick,
+  formatDate,
+}: PhotoCardProps) {
+  const thumbnailUrl = getThumbnailUrl(photo.file_url, 400)
+
+  return (
+    <div
+      onClick={() => (selectionMode ? onSelect(photo.id) : onClick(photo))}
+      className={`relative group cursor-pointer rounded-xl sm:rounded-2xl overflow-hidden shadow-md sm:shadow-lg bg-white transform hover:scale-105 active:scale-[0.98] transition-all duration-300 border-2 ${
+        isSelected
+          ? 'border-safari-green ring-2 ring-safari-green'
+          : 'border-safari-cream-dark hover:border-safari-green-light'
+      }`}
+    >
+      <img
+        src={thumbnailUrl}
+        alt={photo.file_name}
+        className="w-full aspect-square sm:h-48 object-cover"
+        loading="lazy"
+        decoding="async"
+      />
+      {/* Checkbox de seleção */}
+      {selectionMode && (
+        <div className="absolute top-2 left-2 z-10">
+          <div
+            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+              isSelected
+                ? 'bg-safari-green border-safari-green text-white'
+                : 'bg-white/80 border-safari-brown/50'
+            }`}
+          >
+            {isSelected && '✓'}
+          </div>
+        </div>
+      )}
+      {/* Overlay com info */}
+      <div className="absolute inset-0 bg-gradient-to-t from-safari-brown/70 to-transparent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300">
+        <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 text-white">
+          <p className="text-xs sm:text-sm font-semibold truncate">{photo.file_name}</p>
+          <p className="text-[10px] sm:text-xs opacity-80 hidden sm:block">
+            {formatDate(photo.created_at)}
+          </p>
+        </div>
+      </div>
+      {/* Icone de zoom - apenas em desktop */}
+      {!selectionMode && (
+        <div className="absolute top-2 right-2 bg-safari-cream/90 rounded-full p-1.5 sm:p-2 opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 hidden sm:flex">
+          🔍
+        </div>
+      )}
+    </div>
+  )
+})
+
 function PhotoGallery() {
   const [photos, setPhotos] = useState<Photo[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null)
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set())
   const [isDownloading, setIsDownloading] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [total, setTotal] = useState(0)
+  const loaderRef = useRef<HTMLDivElement>(null)
 
+  // Fetch inicial
   useEffect(() => {
-    fetchPhotos()
+    fetchPhotos(1, true)
   }, [])
 
-  const fetchPhotos = async () => {
+  // Intersection Observer para infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+          setPage((prev) => prev + 1)
+        }
+      },
+      { threshold: 0.1, rootMargin: '100px' }
+    )
+
+    if (loaderRef.current) {
+      observer.observe(loaderRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [hasMore, loadingMore, loading])
+
+  // Carregar mais fotos quando page mudar
+  useEffect(() => {
+    if (page > 1) {
+      fetchPhotos(page, false)
+    }
+  }, [page])
+
+  const fetchPhotos = async (pageNum: number, isInitial: boolean) => {
+    if (isInitial) {
+      setLoading(true)
+    } else {
+      setLoadingMore(true)
+    }
+
     try {
-      const response = await axios.get(`${API_URL}/photos`)
-      setPhotos(response.data.photos)
+      const response = await axios.get(
+        `${API_URL}/photos?page=${pageNum}&limit=${PHOTOS_PER_PAGE}`
+      )
+      const { photos: newPhotos, total: totalPhotos, hasMore: more } = response.data
+
+      if (isInitial) {
+        setPhotos(newPhotos)
+      } else {
+        setPhotos((prev) => [...prev, ...newPhotos])
+      }
+
+      setTotal(totalPhotos)
+      setHasMore(more)
     } catch (error) {
       console.error('Erro ao carregar fotos:', error)
     } finally {
-      setLoading(false)
+      if (isInitial) {
+        setLoading(false)
+      } else {
+        setLoadingMore(false)
+      }
     }
   }
 
@@ -195,60 +332,39 @@ function PhotoGallery() {
       {/* Grid de Fotos */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 px-2 sm:px-0">
         {photos.map((photo) => (
-          <div
+          <PhotoCard
             key={photo.id}
-            onClick={() =>
-              selectionMode ? togglePhotoSelection(photo.id) : setSelectedPhoto(photo)
-            }
-            className={`relative group cursor-pointer rounded-xl sm:rounded-2xl overflow-hidden shadow-md sm:shadow-lg bg-white transform hover:scale-105 active:scale-[0.98] transition-all duration-300 border-2 ${
-              selectedPhotos.has(photo.id)
-                ? 'border-safari-green ring-2 ring-safari-green'
-                : 'border-safari-cream-dark hover:border-safari-green-light'
-            }`}
-          >
-            <img
-              src={photo.file_url}
-              alt={photo.file_name}
-              className="w-full aspect-square sm:h-48 object-cover"
-              loading="lazy"
-            />
-            {/* Checkbox de seleção */}
-            {selectionMode && (
-              <div className="absolute top-2 left-2 z-10">
-                <div
-                  className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                    selectedPhotos.has(photo.id)
-                      ? 'bg-safari-green border-safari-green text-white'
-                      : 'bg-white/80 border-safari-brown/50'
-                  }`}
-                >
-                  {selectedPhotos.has(photo.id) && '✓'}
-                </div>
-              </div>
-            )}
-            {/* Overlay com info - sempre visivel em mobile, hover em desktop */}
-            <div className="absolute inset-0 bg-gradient-to-t from-safari-brown/70 to-transparent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300">
-              <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 text-white">
-                <p className="text-xs sm:text-sm font-semibold truncate">{photo.file_name}</p>
-                <p className="text-[10px] sm:text-xs opacity-80 hidden sm:block">{formatDate(photo.created_at)}</p>
-              </div>
-            </div>
-            {/* Icone de zoom - apenas em desktop (escondido no modo seleção) */}
-            {!selectionMode && (
-              <div className="absolute top-2 right-2 bg-safari-cream/90 rounded-full p-1.5 sm:p-2 opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 hidden sm:flex">
-                🔍
-              </div>
-            )}
-          </div>
+            photo={photo}
+            isSelected={selectedPhotos.has(photo.id)}
+            selectionMode={selectionMode}
+            onSelect={togglePhotoSelection}
+            onClick={setSelectedPhoto}
+            formatDate={formatDate}
+          />
         ))}
       </div>
 
+      {/* Loader para infinite scroll */}
+      <div ref={loaderRef} className="flex justify-center py-8">
+        {loadingMore && (
+          <div className="flex flex-col items-center">
+            <div className="text-4xl animate-bounce">🦓</div>
+            <p className="text-safari-brown font-semibold mt-2">Carregando mais fotos...</p>
+          </div>
+        )}
+        {!hasMore && photos.length > 0 && (
+          <p className="text-safari-brown/60 text-sm">Todas as fotos foram carregadas</p>
+        )}
+      </div>
+
       {/* Contador de fotos */}
-      <div className="mt-6 sm:mt-8 text-center flex justify-center">
+      <div className="text-center flex justify-center">
         <div className="bg-safari-cream-dark/50 rounded-full py-2 sm:py-3 px-4 sm:px-6">
           <p className="text-safari-brown font-semibold flex items-center gap-1 sm:gap-2 text-sm sm:text-base">
             <span>🦁</span>
-            <span>{photos.length} momento{photos.length !== 1 ? 's' : ''}</span>
+            <span>
+              {photos.length} de {total} momento{total !== 1 ? 's' : ''}
+            </span>
             <span>🦒</span>
           </p>
         </div>
