@@ -14,7 +14,7 @@ function UploadPage() {
           Bem-vindos ao Safari da Soso!
         </h2>
         <p className="text-safari-brown/70 mt-2 sm:mt-3 text-sm sm:text-lg max-w-2xl mx-auto px-4">
-          Compartilhe suas fotos e momentos especiais no cha de bebe da nossa pequena exploradora!
+          Compartilhe suas fotos e momentos especiais no chá de bebe da nossa pequena exploradora!
         </p>
         <div className="flex justify-center gap-1 mt-2">
           <span className="text-base sm:text-xl">🌿</span>

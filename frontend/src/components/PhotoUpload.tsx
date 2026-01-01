@@ -200,13 +200,13 @@ function PhotoUpload() {
             Fotos enviadas!
           </h3>
           <p className="text-safari-brown text-sm sm:text-base">
-            {uploadResult.filter((r) => !r.error).length} foto(s) no album da Soso!
+            {uploadResult.filter((r) => !r.error).length} foto(s) no álbum da Soso!
           </p>
           <a
             href="/galeria"
             className="inline-block mt-3 sm:mt-4 bg-safari-green text-white font-bold py-2 px-4 sm:px-6 rounded-full hover:bg-safari-green-dark active:bg-safari-green-dark transition-colors text-sm sm:text-base"
           >
-            Ver Album 🖼️
+            Ver Álbum 🖼️
           </a>
         </div>
       )}

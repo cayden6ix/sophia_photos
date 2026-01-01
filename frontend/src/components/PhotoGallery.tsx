@@ -68,7 +68,7 @@ function PhotoGallery() {
       <div className="text-center py-12 sm:py-20 bg-white/50 rounded-2xl sm:rounded-3xl mx-2 sm:mx-0">
         <div className="text-6xl sm:text-8xl mb-4 sm:mb-6">🦒</div>
         <h2 className="text-xl sm:text-2xl font-bold text-safari-brown mb-2 px-4">
-          O album ainda esta vazio!
+          O álbum ainda esta vazio!
         </h2>
         <p className="text-safari-brown/60 mb-4 sm:mb-6 max-w-md mx-auto text-sm sm:text-base px-4">
           Seja o primeiro a compartilhar um momento especial no cha de bebe da Sophia!

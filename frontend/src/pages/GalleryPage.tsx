@@ -11,7 +11,7 @@ function GalleryPage() {
           <span className="text-2xl sm:text-3xl">💚</span>
         </div>
         <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-safari-brown drop-shadow-sm px-2">
-          Album do Safari da Soso
+          Álbum do Safari da Soso
         </h2>
         <p className="text-safari-brown/70 mt-2 sm:mt-3 text-sm sm:text-lg max-w-2xl mx-auto px-4">
           Reviva os momentos magicos registrados pelos amigos e familiares da Sophia!
