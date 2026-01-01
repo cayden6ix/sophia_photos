@@ -5,7 +5,7 @@ import GalleryPage from './pages/GalleryPage'
 
 function App() {
   return (
-    <div className="min-h-screen bg-safari-sky">
+    <div className="min-h-screen bg-safari-cream">
       <Header />
       <main>
         <Routes>
@@ -13,6 +13,11 @@ function App() {
           <Route path="/galeria" element={<GalleryPage />} />
         </Routes>
       </main>
+
+      {/* Footer com creditos */}
+      <footer className="text-center py-4 text-safari-brown/50 text-sm">
+        <p>Feito com 💚 para a chegada da Sophia</p>
+      </footer>
     </div>
   )
 }

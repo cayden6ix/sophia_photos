@@ -90,13 +90,13 @@ function PhotoUpload() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* Área de Drop */}
+    <div className="max-w-4xl mx-auto px-2 sm:px-0">
+      {/* Area de Drop */}
       <div
-        className={`relative border-4 border-dashed rounded-3xl p-8 text-center transition-all duration-300 ${
+        className={`relative border-3 sm:border-4 border-dashed rounded-2xl sm:rounded-3xl p-4 sm:p-8 text-center transition-all duration-300 ${
           dragActive
-            ? 'border-safari-yellow bg-safari-yellow/20 scale-105'
-            : 'border-safari-brown/40 bg-white/50 hover:border-safari-green'
+            ? 'border-safari-sand bg-safari-sand/30 scale-[1.02]'
+            : 'border-safari-brown/30 bg-white/60 hover:border-safari-green hover:bg-safari-cream-dark/50 active:bg-safari-cream-dark/60'
         }`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
@@ -112,79 +112,79 @@ function PhotoUpload() {
           className="hidden"
         />
 
-        <div className="space-y-4">
-          <div className="text-6xl animate-bounce">🦒</div>
-          <h3 className="text-2xl font-bold text-safari-brown">
-            Arraste suas fotos aqui!
+        <div className="space-y-3 sm:space-y-4">
+          <div className="text-5xl sm:text-6xl animate-bounce">🦒</div>
+          <h3 className="text-lg sm:text-2xl font-bold text-safari-brown px-2">
+            Toque para adicionar fotos!
           </h3>
-          <p className="text-safari-brown/70">
-            ou clique no botão abaixo para selecionar
+          <p className="text-safari-brown/60 text-sm sm:text-base px-2 hidden sm:block">
+            ou arraste suas fotos para ca
           </p>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="bg-safari-green hover:bg-safari-green-dark text-white font-bold py-3 px-8 rounded-full shadow-lg transform hover:scale-105 transition-all duration-200 inline-flex items-center gap-2"
+            className="bg-safari-green hover:bg-safari-green-dark active:bg-safari-green-dark text-white font-bold py-3 px-6 sm:px-8 rounded-full shadow-lg transform hover:scale-105 active:scale-95 transition-all duration-200 inline-flex items-center gap-2 text-sm sm:text-base"
           >
             <span>📷</span>
             Escolher Fotos
           </button>
         </div>
 
-        {/* Animais decorativos */}
-        <div className="absolute -left-4 bottom-0 text-4xl">🐘</div>
-        <div className="absolute -right-4 bottom-0 text-4xl">🦓</div>
+        {/* Animais decorativos - menores em mobile */}
+        <div className="absolute -left-1 sm:-left-2 bottom-1 sm:bottom-2 text-2xl sm:text-3xl opacity-60">🐘</div>
+        <div className="absolute -right-1 sm:-right-2 bottom-1 sm:bottom-2 text-2xl sm:text-3xl opacity-60">🦓</div>
       </div>
 
       {/* Preview das fotos selecionadas */}
       {previews.length > 0 && (
-        <div className="mt-8">
-          <h3 className="text-xl font-bold text-safari-brown mb-4 flex items-center gap-2">
+        <div className="mt-6 sm:mt-8">
+          <h3 className="text-lg sm:text-xl font-bold text-safari-brown mb-3 sm:mb-4 flex items-center gap-2">
             <span>🐵</span>
-            Fotos selecionadas ({previews.length})
+            <span className="truncate">Momentos capturados ({previews.length})</span>
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-4">
             {previews.map((preview, index) => (
               <div
                 key={index}
-                className="relative group rounded-2xl overflow-hidden shadow-lg bg-white"
+                className="relative group rounded-xl sm:rounded-2xl overflow-hidden shadow-md sm:shadow-lg bg-white border-2 border-safari-cream-dark aspect-square"
               >
                 <img
                   src={preview}
                   alt={`Preview ${index + 1}`}
-                  className="w-full h-32 object-cover"
+                  className="w-full h-full object-cover"
                 />
                 <button
                   onClick={() => removeFile(index)}
-                  className="absolute top-2 right-2 bg-red-500 text-white w-8 h-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center font-bold shadow-lg"
+                  className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-red-500 text-white w-6 h-6 sm:w-8 sm:h-8 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center font-bold shadow-lg text-sm sm:text-base"
                 >
-                  ×
+                  x
                 </button>
-                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2 truncate">
+                <div className="absolute bottom-0 left-0 right-0 bg-safari-brown/70 text-white text-[10px] sm:text-xs p-1 sm:p-2 truncate hidden sm:block">
                   {selectedFiles[index]?.name}
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Botão de Upload */}
-          <div className="mt-6 text-center">
+          {/* Botao de Upload */}
+          <div className="mt-4 sm:mt-6 text-center">
             <button
               onClick={handleUpload}
               disabled={uploading}
-              className={`py-4 px-12 rounded-full font-bold text-xl shadow-xl transform transition-all duration-200 inline-flex items-center gap-3 ${
+              className={`w-full sm:w-auto py-3 sm:py-4 px-6 sm:px-12 rounded-full font-bold text-base sm:text-xl shadow-xl transform transition-all duration-200 inline-flex items-center justify-center gap-2 sm:gap-3 ${
                 uploading
                   ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-safari-yellow hover:bg-safari-yellow-dark text-safari-brown hover:scale-105'
+                  : 'bg-safari-sand hover:bg-safari-sand-dark active:bg-safari-sand-dark text-safari-brown-dark hover:scale-105 active:scale-95'
               }`}
             >
               {uploading ? (
                 <>
                   <span className="animate-spin">🔄</span>
-                  Enviando...
+                  <span className="text-sm sm:text-xl">Enviando...</span>
                 </>
               ) : (
                 <>
-                  <span>🚀</span>
-                  Enviar {previews.length} foto{previews.length > 1 ? 's' : ''}
+                  <span>🦁</span>
+                  <span>Enviar {previews.length} foto{previews.length > 1 ? 's' : ''}</span>
                 </>
               )}
             </button>
@@ -194,20 +194,19 @@ function PhotoUpload() {
 
       {/* Resultado do Upload */}
       {uploadResult.length > 0 && (
-        <div className="mt-8 bg-white/80 rounded-3xl p-6 shadow-lg">
-          <h3 className="text-xl font-bold text-safari-green mb-4 flex items-center gap-2">
-            <span>✅</span>
-            Upload concluído!
+        <div className="mt-6 sm:mt-8 bg-safari-cream-dark/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg border-2 border-safari-green-light">
+          <h3 className="text-lg sm:text-xl font-bold text-safari-green mb-3 sm:mb-4 flex items-center gap-2">
+            <span>🎉</span>
+            Fotos enviadas!
           </h3>
-          <p className="text-safari-brown">
-            {uploadResult.filter((r) => !r.error).length} foto(s) enviada(s) com
-            sucesso!
+          <p className="text-safari-brown text-sm sm:text-base">
+            {uploadResult.filter((r) => !r.error).length} foto(s) no album da Soso!
           </p>
           <a
             href="/galeria"
-            className="inline-block mt-4 bg-safari-green text-white font-bold py-2 px-6 rounded-full hover:bg-safari-green-dark transition-colors"
+            className="inline-block mt-3 sm:mt-4 bg-safari-green text-white font-bold py-2 px-4 sm:px-6 rounded-full hover:bg-safari-green-dark active:bg-safari-green-dark transition-colors text-sm sm:text-base"
           >
-            Ver na Galeria 🖼️
+            Ver Album 🖼️
           </a>
         </div>
       )}
